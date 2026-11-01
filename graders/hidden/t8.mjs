@@ -1,0 +1,15 @@
+const dir=process.argv[2]; const {createLimiter}=await import(dir+'/ratelimit.js'); const r={};
+const T=(n,f)=>{try{r[n]=!!f()}catch(e){r[n]=false}};
+let t=0; const clk=()=>t;
+T('starts_full',()=>{const l=createLimiter({capacity:5,refillPerSec:1,now:clk});for(let i=0;i<5;i++)if(!l.take('a').ok)return false;return !l.take('a').ok});
+T('retry_exact',()=>{t=0;const l=createLimiter({capacity:2,refillPerSec:4,now:clk});l.take('a',2);const x=l.take('a',1);return !x.ok&&x.retryAfterMs===250});
+T('retry_rounds_up',()=>{t=0;const l=createLimiter({capacity:3,refillPerSec:3,now:clk});l.take('a',3);const x=l.take('a',1);return x.retryAfterMs===334});
+T('fractional_refill',()=>{t=0;const l=createLimiter({capacity:2,refillPerSec:1,now:clk});l.take('a',2);t=500;if(l.take('a').ok)return false;t=1000;return l.take('a').ok});
+T('cap_at_capacity',()=>{t=0;const l=createLimiter({capacity:3,refillPerSec:10,now:clk});t=100000;return l.take('a',3).ok&&!l.take('a',1).ok});
+T('per_key',()=>{t=0;const l=createLimiter({capacity:1,refillPerSec:1,now:clk});return l.take('a').ok&&l.take('b').ok&&!l.take('a').ok});
+T('fail_takes_nothing',()=>{t=0;const l=createLimiter({capacity:5,refillPerSec:1,now:clk});l.take('a',4);const f=l.take('a',3);return !f.ok&&l.take('a',1).ok});
+T('remaining_floor',()=>{t=0;const l=createLimiter({capacity:5,refillPerSec:1,now:clk});l.take('a',5);t=2500;const x=l.take('a',1);return x.ok&&x.remaining===1});
+T('too_big_infinity',()=>{t=0;const l=createLimiter({capacity:5,refillPerSec:1,now:clk});const x=l.take('a',6);return !x.ok&&x.retryAfterMs===Infinity});
+T('bad_cost_throws',()=>{const l=createLimiter({capacity:5,refillPerSec:1,now:clk});let n=0;for(const c of [0,-1,NaN,Infinity,'2']){try{l.take('a',c)}catch(e){if(e instanceof TypeError)n++}}return n===5});
+T('clock_backwards',()=>{t=10000;const l=createLimiter({capacity:2,refillPerSec:1,now:clk});l.take('a',2);t=5000;const x=l.take('a');t=6000;t=11000;return !x.ok&&l.take('a').ok});
+const p=Object.values(r).filter(Boolean).length;console.log(JSON.stringify({score:p,total:Object.keys(r).length,detail:r}));

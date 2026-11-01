@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Gloam Vault</title>
+<style>
+  :root { color-scheme: dark; --ink:#ece3cd; --muted:#8e8b80; --gold:#d7b76b; --line:#34392f; --panel:#191d19; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:#101410; color:var(--ink); font-family:Georgia, 'Times New Roman', serif; }
+  body::before { content:""; position:fixed; inset:0; pointer-events:none; background:radial-gradient(ellipse at 50% 0%, #293126 0%, transparent 60%); opacity:.6; }
+  .shell { position:relative; max-width:1440px; margin:auto; padding:34px 48px 28px; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:25px; }
+  .brand { display:flex; align-items:center; gap:14px; }
+  .mark { width:45px; height:45px; border:1px solid #8b794e; display:grid; place-items:center; color:#d3b672; font-size:25px; transform:rotate(45deg); background:#20251d; }
+  .mark span { transform:rotate(-45deg); }
+  .eyebrow, .small-label { font:700 10px/1.3 Arial,sans-serif; letter-spacing:.2em; text-transform:uppercase; color:#a99c7c; }
+  h1 { margin:3px 0 0; font-size:25px; line-height:1; font-weight:normal; letter-spacing:.015em; }
+  .header-right { display:flex; align-items:center; gap:10px; color:#a4a394; font:10px Arial,sans-serif; letter-spacing:.16em; text-transform:uppercase; }
+  .dot { width:7px; height:7px; border-radius:50%; background:#a6b886; box-shadow:0 0 12px #a6b886; }
+  .layout { display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:20px; align-items:stretch; }
+  .game-frame { min-width:0; padding:7px; background:#292e25; border:1px solid #4b4c3c; box-shadow:0 18px 50px #0007, inset 0 0 0 1px #161a15; }
+  .canvas-wrap { position:relative; background:#20271f; overflow:hidden; }
+  canvas { display:block; width:100%; height:auto; aspect-ratio: 960 / 600; }
+  .sidebar { display:flex; flex-direction:column; border:1px solid #393d31; background:linear-gradient(155deg,#20251e,#171b17); box-shadow:0 18px 50px #0003; }
+  .side-top { padding:23px 22px 20px; border-bottom:1px solid var(--line); }
+  .chapter { display:flex; justify-content:space-between; align-items:center; }
+  .chapter span:last-child { color:#6f7665; font:11px Arial,sans-serif; letter-spacing:.1em; }
+  h2 { margin:11px 0 7px; font-size:25px; font-weight:normal; }
+  .description { color:#929688; font:12px/1.6 Arial,sans-serif; margin:0; }
+  .stats { padding:23px 22px; border-bottom:1px solid var(--line); }
+  .stat-heading { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
+  .stat-heading strong { font:12px Arial,sans-serif; color:#d8d2bd; }
+  .hearts { display:flex; gap:6px; margin-bottom:25px; }
+  .heart { height:8px; flex:1; background:#b96951; box-shadow:0 0 10px #ad5c3c55; }
+  .heart.empty { background:#3d3a32; box-shadow:none; }
+  .score-row { display:flex; justify-content:space-between; align-items:end; }
+  .score { font-size:32px; line-height:1; color:#ebd8a4; font-variant-numeric:tabular-nums; }
+  .score-caption { margin-top:6px; color:#777e70; font:10px Arial,sans-serif; letter-spacing:.06em; }
+  .enemy-count { color:#c2beaa; font:12px Arial,sans-serif; text-align:right; }
+  .enemy-count span { display:block; color:#777e70; font-size:10px; margin-top:6px; }
+  .instructions { padding:23px 22px; flex:1; }
+  .instruction-title { margin-bottom:17px; }
+  .control { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:12px 0; color:#b9bbab; font:12px Arial,sans-serif; }
+  .keys { display:flex; gap:3px; }
+  kbd { display:inline-grid; place-items:center; min-width:25px; height:25px; padding:0 5px; background:#292e26; border:1px solid #484b3e; border-bottom:2px solid #55574a; border-radius:3px; color:#d6d2bd; font:10px Arial,sans-serif; }
+  .hint { color:#7f8677; font:11px/1.6 Arial,sans-serif; margin:21px 0 0; }
+  .side-bottom { padding:15px 22px; border-top:1px solid var(--line); color:#9b9275; font:10px Arial,sans-serif; letter-spacing:.1em; text-transform:uppercase; }
+  .side-bottom b { color:#cfb36b; margin-right:6px; }
+  footer { display:flex; justify-content:space-between; gap:12px; margin-top:17px; color:#737a6e; font:10px Arial,sans-serif; letter-spacing:.1em; text-transform:uppercase; }
+  @media(max-width:900px) { .shell { padding:22px 18px; } .layout { grid-template-columns:1fr; } .sidebar { display:grid; grid-template-columns:1fr 1fr; } .side-top,.stats { border-bottom:1px solid var(--line); } .instructions { grid-column:1 / -1; } .side-bottom { grid-column:1 / -1; } }
+  @media(max-width:500px) { .header-right { display:none; } .sidebar { grid-template-columns:1fr; } .instructions,.side-bottom { grid-column:auto; } footer span:last-child { display:none; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="brand"><div class="mark"><span>✦</span></div><div><div class="eyebrow">A little dungeon adventure</div><h1>The Gloam Vault</h1></div></div>
+    <div class="header-right"><span class="dot"></span> An expedition into the dark</div>
+  </header>
+  <main class="layout">
+    <section class="game-frame" aria-label="Dungeon game"><div class="canvas-wrap"><canvas id="game" width="960" height="600" aria-label="Top-down dungeon. Move with arrow keys or WASD, attack with space."></canvas></div></section>
+    <aside class="sidebar">
+      <div class="side-top"><div class="chapter"><span class="small-label">The expedition</span><span>01 / 01</span></div><h2>Into the vault</h2><p class="description">A forgotten chamber, full of restless things and treasures left behind.</p></div>
+      <div class="stats">
+        <div class="stat-heading"><span class="small-label">Vitality</span><strong id="healthText">5 / 5</strong></div><div class="hearts" id="hearts"></div>
+        <div class="score-row"><div><div class="small-label" style="margin-bottom:9px">Your score</div><div class="score" id="score">0</div><div class="score-caption">Treasure &amp; triumph</div></div><div class="enemy-count"><b id="enemyCount">4</b><span>FOES LEFT</span></div></div>
+      </div>
+      <div class="instructions"><div class="small-label instruction-title">Field guide</div>
+        <div class="control"><span>Move</span><div class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div></div>
+        <div class="control"><span>Or use</span><div class="keys"><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></div></div>
+        <div class="control"><span>Swing sword</span><div class="keys"><kbd>SPACE</kbd></div></div>
+        <div class="control"><span>Start over</span><div class="keys"><kbd>R</kbd></div></div>
+        <p class="hint">Keep your distance. Strike nearby foes and gather the scattered gold.</p>
+      </div>
+      <div class="side-bottom"><b>✦</b> Fortune favors the brave</div>
+    </aside>
+  </main>
+  <footer><span>Deep below, something stirs</span><span>Explore · Fight · Collect</span></footer>
+</div>
+<script>
+(() => {
+  'use strict';
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const healthText = document.getElementById('healthText');
+  const hearts = document.getElementById('hearts');
+  const scoreText = document.getElementById('score');
+  const enemyCount = document.getElementById('enemyCount');
+  const W = 960, H = 600, bounds = {left:42, right:918, top:46, bottom:554};
+  const obstacles = [
+    {x:282,y:160,w:65,h:65}, {x:603,y:365,w:65,h:65},
+    {x:603,y:160,w:65,h:65}, {x:282,y:365,w:65,h:65}
+  ];
+  const keys = Object.create(null);
+  let state, lastTime = 0;
+  function reset() {
+    for (const key in keys) delete keys[key];
+    state = {
+      player:{x:135,y:467,r:15,dx:0,dy:-1,invuln:0,attack:0,cooldown:0},
+      health:5, score:0, gameOver:false, time:0,
+      enemies:[
+        {x:755,y:115,r:15,hp:3,speed:58,phase:0},
+        {x:790,y:450,r:15,hp:3,speed:64,phase:1.7},
+        {x:460,y:130,r:15,hp:3,speed:55,phase:3.2},
+        {x:468,y:460,r:15,hp:3,speed:61,phase:5}
+      ],
+      coins:[{x:200,y:145},{x:470,y:280},{x:835,y:270},{x:460,y:535},{x:765,y:520},{x:145,y:315}]
+    };
+    updateHUD();
+  }
+  function updateHUD() {
+    healthText.textContent = state.health + ' / 5';
+    scoreText.textContent = state.score;
+    enemyCount.textContent = state.enemies.length;
+    hearts.innerHTML = Array.from({length:5}, (_,i) => '<span class="heart' + (i >= state.health ? ' empty' : '') + '"></span>').join('');
+  }
+  function blocked(x,y,r) {
+    if (x-r < bounds.left || x+r > bounds.right || y-r < bounds.top || y+r > bounds.bottom) return true;
+    return obstacles.some(o => {
+      const cx = Math.max(o.x, Math.min(x, o.x+o.w));
+      const cy = Math.max(o.y, Math.min(y, o.y+o.h));
+      return (x-cx)**2 + (y-cy)**2 < r*r;
+    });
+  }
+  function move(entity, dx, dy) {
+    if (!blocked(entity.x+dx, entity.y, entity.r)) entity.x += dx;
+    if (!blocked(entity.x, entity.y+dy, entity.r)) entity.y += dy;
+  }
+  function attack() {
+    const p = state.player;
+    if (state.gameOver || p.cooldown > 0) return;
+    p.cooldown = .38; p.attack = .19;
+    for (const e of state.enemies) {
+      if (Math.hypot(e.x-p.x,e.y-p.y) < 68 + e.r) {
+        e.hp--;
+        e.flash = .16;
+        const angle = Math.atan2(e.y-p.y,e.x-p.x);
+        move(e,Math.cos(angle)*18,Math.sin(angle)*18);
+      }
+    }
+    const before = state.enemies.length;
+    state.enemies = state.enemies.filter(e => e.hp > 0);
+    state.score += (before-state.enemies.length)*100;
+    updateHUD();
+  }
+  function update(dt) {
+    if (state.gameOver) return;
+    state.time += dt;
+    const p = state.player;
+    p.invuln = Math.max(0,p.invuln-dt); p.attack = Math.max(0,p.attack-dt); p.cooldown = Math.max(0,p.cooldown-dt);
+    let dx = (keys.arrowright || keys.d ? 1 : 0) - (keys.arrowleft || keys.a ? 1 : 0);
+    let dy = (keys.arrowdown || keys.s ? 1 : 0) - (keys.arrowup || keys.w ? 1 : 0);
+    if (dx || dy) { const len = Math.hypot(dx,dy); dx /= len; dy /= len; p.dx=dx; p.dy=dy; move(p,dx*180*dt,dy*180*dt); }
+    if (keys[' ']) attack();
+    for (const e of state.enemies) {
+      e.flash = Math.max(0,(e.flash || 0)-dt);
+      let vx=p.x-e.x, vy=p.y-e.y, dist=Math.hypot(vx,vy) || 1;
+      // A gentle weave helps enemies find their way around the old pillars.
+      const weave = Math.sin(state.time*1.5+e.phase)*.22;
+      const nx=vx/dist, ny=vy/dist;
+      move(e,(nx-ny*weave)*e.speed*dt,(ny+nx*weave)*e.speed*dt);
+      if (Math.hypot(p.x-e.x,p.y-e.y) < p.r+e.r+2 && p.invuln <= 0) {
+        state.health--; p.invuln=1.15;
+        const angle = Math.atan2(p.y-e.y,p.x-e.x);
+        move(p,Math.cos(angle)*24,Math.sin(angle)*24);
+        if (state.health <= 0) { state.health=0; state.gameOver=true; }
+        updateHUD();
+      }
+    }
+    const previous = state.coins.length;
+    state.coins = state.coins.filter(c => Math.hypot(c.x-p.x,c.y-p.y) > p.r+11);
+    if (previous !== state.coins.length) { state.score += (previous-state.coins.length)*25; updateHUD(); }
+  }
+  function roundRect(x,y,w,h,r,fill,stroke) {
+    ctx.beginPath(); ctx.roundRect(x,y,w,h,r); if (fill) { ctx.fillStyle=fill; ctx.fill(); } if (stroke) { ctx.strokeStyle=stroke; ctx.stroke(); }
+  }
+  function drawFloor() {
+    ctx.fillStyle='#202a23'; ctx.fillRect(0,0,W,H);
+    // Individually shaded stone tiles, with a deterministic pattern.
+    for (let y=0;y<10;y++) for (let x=0;x<16;x++) {
+      const v=(x*31+y*17+x*y*7)%11;
+      ctx.fillStyle = v<3 ? '#29352a' : v<7 ? '#263128' : '#2a352b';
+      ctx.fillRect(x*60+1,y*60+1,58,58);
+      ctx.fillStyle='#344034'; ctx.globalAlpha=.38;
+      if (v===1 || v===6) { ctx.fillRect(x*60+12,y*60+18,17,2); ctx.fillRect(x*60+27,y*60+18,2,9); }
+      ctx.globalAlpha=1;
+    }
+    // Room edge and heavy masonry walls.
+    ctx.fillStyle='#121a16'; ctx.fillRect(0,0,W,46); ctx.fillRect(0,554,W,46); ctx.fillRect(0,0,42,H); ctx.fillRect(918,0,42,H);
+    ctx.fillStyle='#394338'; ctx.fillRect(0,32,W,13); ctx.fillRect(0,554,W,12); ctx.fillRect(29,0,12,H); ctx.fillRect(919,0,12,H);
+    ctx.fillStyle='#4a5140'; ctx.fillRect(42,43,876,3); ctx.fillRect(42,554,876,3); ctx.fillRect(39,46,3,508); ctx.fillRect(918,46,3,508);
+    ctx.strokeStyle='#2c352b'; ctx.lineWidth=2;
+    for(let x=42;x<918;x+=72) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,32); ctx.moveTo(x+36,566); ctx.lineTo(x+36,600); ctx.stroke(); }
+    for(let y=60;y<554;y+=72) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(29,y); ctx.moveTo(931,y+36); ctx.lineTo(960,y+36); ctx.stroke(); }
+    // An engraved central medallion.
+    ctx.save(); ctx.globalAlpha=.18; ctx.strokeStyle='#a59b70'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(480,300,92,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.arc(480,300,77,0,Math.PI*2); ctx.stroke();
+    ctx.translate(480,300); ctx.rotate(Math.PI/4); ctx.strokeRect(-47,-47,94,94); ctx.restore();
+    for (const o of obstacles) {
+      ctx.fillStyle='#141c17'; ctx.fillRect(o.x+5,o.y+10,o.w,o.h);
+      ctx.fillStyle='#4a5141'; ctx.fillRect(o.x,o.y,o.w,o.h);
+      ctx.fillStyle='#646754'; ctx.fillRect(o.x+4,o.y+4,o.w-8,o.h-8);
+      ctx.fillStyle='#505a49'; ctx.fillRect(o.x+9,o.y+9,o.w-18,o.h-18);
+      ctx.strokeStyle='#79806a'; ctx.globalAlpha=.38; ctx.strokeRect(o.x+13,o.y+13,o.w-26,o.h-26); ctx.globalAlpha=1;
+      ctx.fillStyle='#414a3d'; ctx.fillRect(o.x+26,o.y+17,13,31); ctx.fillRect(o.x+17,o.y+26,31,13);
+    }
+    // Wall sconces.
+    for (const x of [155,480,805]) {
+      const glow=ctx.createRadialGradient(x,48,1,x,48,68); glow.addColorStop(0,'rgba(231,174,82,.23)'); glow.addColorStop(1,'rgba(231,174,82,0)'); ctx.fillStyle=glow; ctx.fillRect(x-68,0,136,116);
+      ctx.fillStyle='#b38b4c'; ctx.fillRect(x-3,29,6,17); ctx.fillStyle='#f2c67a'; ctx.beginPath(); ctx.arc(x,37,4,0,7); ctx.fill();
+    }
+    ctx.fillStyle='rgba(202,193,158,.55)'; ctx.font='10px Arial'; ctx.letterSpacing='2px'; ctx.fillText('THE GLOAM VAULT',62,76); ctx.letterSpacing='0px';
+    ctx.fillStyle='rgba(202,193,158,.35)'; ctx.font='10px Arial'; ctx.fillText('CHAMBER 01',62,91);
+  }
+  function drawCoin(c) {
+    const bob=Math.sin(state.time*3+c.x)*2;
+    ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(c.x,c.y+10,10,4,0,0,7); ctx.fill();
+    ctx.fillStyle='#8d632c'; ctx.beginPath(); ctx.arc(c.x,c.y+bob+2,9,0,7); ctx.fill();
+    ctx.fillStyle='#e5bf62'; ctx.beginPath(); ctx.arc(c.x,c.y+bob,8,0,7); ctx.fill();
+    ctx.strokeStyle='#ffdd85'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(c.x,c.y+bob,5.5,0,7); ctx.stroke();
+    ctx.fillStyle='#a97a34'; ctx.fillRect(c.x-1,c.y-4+bob,2,8);
+  }
+  function drawEnemy(e) {
+    ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(e.x,e.y+15,17,7,0,0,7); ctx.fill();
+    ctx.fillStyle=e.flash>0?'#fff0d0':'#779274'; ctx.beginPath(); ctx.ellipse(e.x,e.y,16,15,0,0,7); ctx.fill();
+    ctx.fillStyle=e.flash>0?'#fff7e2':'#a5b18a'; ctx.beginPath(); ctx.ellipse(e.x-2,e.y-4,12,10,0,0,7); ctx.fill();
+    ctx.fillStyle='#26352a'; ctx.beginPath(); ctx.arc(e.x-5,e.y-3,2.3,0,7); ctx.arc(e.x+5,e.y-3,2.3,0,7); ctx.fill();
+    ctx.fillStyle='#c8d2ad'; ctx.fillRect(e.x-7,e.y-5,2,2); ctx.fillRect(e.x+3,e.y-5,2,2);
+    if (e.hp<3) { ctx.fillStyle='#1a211b'; ctx.fillRect(e.x-15,e.y-25,30,4); ctx.fillStyle='#c37a5b'; ctx.fillRect(e.x-15,e.y-25,30*e.hp/3,4); }
+  }
+  function drawPlayer(p) {
+    if (p.attack>0) {
+      ctx.save(); ctx.strokeStyle='rgba(244,214,140,'+(p.attack/.19*.8)+')'; ctx.lineWidth=5; ctx.beginPath(); ctx.arc(p.x,p.y,51,0,Math.PI*2); ctx.stroke(); ctx.strokeStyle='rgba(255,244,202,.8)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(p.x,p.y,57,-.4,1.5); ctx.stroke(); ctx.restore();
+    }
+    if (p.invuln>0 && Math.floor(p.invuln*10)%2===0) ctx.globalAlpha=.45;
+    ctx.fillStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(p.x,p.y+16,18,7,0,0,7); ctx.fill();
+    // Cape, body, head and the blade point in the last movement direction.
+    ctx.fillStyle='#974e3e'; ctx.beginPath(); ctx.moveTo(p.x-12,p.y+2); ctx.lineTo(p.x+12,p.y+2); ctx.lineTo(p.x+13,p.y+17); ctx.lineTo(p.x,p.y+12); ctx.lineTo(p.x-13,p.y+17); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#c5b38b'; ctx.beginPath(); ctx.arc(p.x,p.y+2,12,0,7); ctx.fill();
+    ctx.fillStyle='#5d6858'; ctx.beginPath(); ctx.arc(p.x,p.y-5,10,0,7); ctx.fill();
+    ctx.fillStyle='#d7c6a3'; ctx.beginPath(); ctx.arc(p.x,p.y-6,7,0,7); ctx.fill();
+    ctx.fillStyle='#514b3b'; ctx.beginPath(); ctx.arc(p.x+p.dx*4,p.y-6+p.dy*4,2,0,7); ctx.fill();
+    ctx.save(); ctx.translate(p.x+p.dy*14,p.y-p.dx*14); ctx.rotate(Math.atan2(p.dy,p.dx));
+    ctx.fillStyle='#9d7944'; ctx.fillRect(-1,-3,13,6); ctx.fillStyle='#e4dfc5'; ctx.beginPath(); ctx.moveTo(10,-3); ctx.lineTo(29,0); ctx.lineTo(10,3); ctx.closePath(); ctx.fill(); ctx.restore();
+    ctx.globalAlpha=1;
+  }
+  function draw() {
+    drawFloor();
+    state.coins.forEach(drawCoin);
+    const actors = state.enemies.map(e=>({y:e.y,draw:()=>drawEnemy(e)}));
+    actors.push({y:state.player.y,draw:()=>drawPlayer(state.player)}); actors.sort((a,b)=>a.y-b.y).forEach(a=>a.draw());
+    const vignette=ctx.createRadialGradient(480,300,190,480,300,590); vignette.addColorStop(0,'rgba(8,13,9,0)'); vignette.addColorStop(1,'rgba(8,13,9,.48)'); ctx.fillStyle=vignette; ctx.fillRect(0,0,W,H);
+    if (state.gameOver) {
+      ctx.fillStyle='rgba(9,13,10,.82)'; ctx.fillRect(0,0,W,H);
+      roundRect(300,185,360,230,2,'#20271e','#797253');
+      ctx.textAlign='center'; ctx.fillStyle='#bfaa72'; ctx.font='11px Arial'; ctx.fillText('✦  YOUR EXPEDITION HAS ENDED  ✦',480,225);
+      ctx.fillStyle='#f0e6ce'; ctx.font='38px Georgia'; ctx.fillText('Game Over',480,275);
+      ctx.fillStyle='#b7b9a8'; ctx.font='14px Arial'; ctx.fillText('Final score: '+state.score,480,309);
+      ctx.fillStyle='#dec58b'; ctx.font='12px Arial'; ctx.fillText('PRESS R TO TRY AGAIN',480,365); ctx.textAlign='left';
+    }
+  }
+  function frame(time) {
+    const dt = lastTime ? Math.min((time-lastTime)/1000,.05) : 0; lastTime=time;
+    update(dt); draw(); requestAnimationFrame(frame);
+  }
+  window.addEventListener('keydown', e => {
+    const key=e.key.toLowerCase();
+    if (['arrowup','arrowdown','arrowleft','arrowright',' ','w','a','s','d','r'].includes(key)) e.preventDefault();
+    if (key==='r' && !e.repeat) { reset(); return; }
+    keys[key]=true;
+    if (key===' ' && !e.repeat) attack();
+  });
+  window.addEventListener('keyup', e => { keys[e.key.toLowerCase()]=false; });
+  window.addEventListener('blur', () => { for (const key in keys) delete keys[key]; });
+  window.game = { getState: () => ({player:{x:state.player.x,y:state.player.y},health:state.health,score:state.score,gameOver:state.gameOver,enemies:state.enemies.length}) };
+  reset(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

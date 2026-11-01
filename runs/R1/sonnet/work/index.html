@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Balls in Spinning Hexagon</title>
+<style>
+body{margin:0;background:#111;color:#ddd;font:14px sans-serif;display:flex;flex-direction:column;align-items:center}
+canvas{background:#181820;margin-top:8px;max-width:100vw}
+#ui{display:flex;gap:20px;flex-wrap:wrap;padding:10px;justify-content:center}
+label{display:flex;flex-direction:column;align-items:center}
+</style></head><body>
+<canvas id="c" width="700" height="700"></canvas>
+<div id="ui">
+<label>Rotation speed: <span id="rv"></span><input id="rot" type="range" min="-3" max="3" step="0.05" value="0.6"></label>
+<label>Gravity: <span id="gv"></span><input id="grav" type="range" min="0" max="2000" step="10" value="900"></label>
+<label>Ball count: <span id="nv"></span><input id="cnt" type="range" min="1" max="40" step="1" value="10"></label>
+</div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const W=cv.width,H=cv.height,CX=W/2,CY=H/2,R=300; // hexagon circumradius
+const apo=R*Math.cos(Math.PI/6);
+const REST=0.85, WALLFRIC=0.15, AIR=0.05; // restitution, tangential friction, air drag
+let angle=0, balls=[];
+const rot=document.getElementById('rot'),grav=document.getElementById('grav'),cnt=document.getElementById('cnt');
+function lab(){rv.textContent=(+rot.value).toFixed(2)+' rad/s';gv.textContent=grav.value;nv.textContent=cnt.value;}
+function addBall(i){
+  const r=14+Math.random()*10;
+  const a=Math.random()*Math.PI*2,d=Math.random()*(apo-r-40);
+  balls.push({x:CX+Math.cos(a)*d,y:CY+Math.sin(a)*d,vx:(Math.random()-.5)*300,vy:(Math.random()-.5)*300,r,m:r*r,
+    color:`hsl(${(i*47)%360},80%,60%)`,n:i+1});
+}
+function setCount(n){while(balls.length>n)balls.pop();while(balls.length<n)addBall(balls.length);}
+[rot,grav,cnt].forEach(e=>e.oninput=()=>{lab();if(e===cnt)setCount(+cnt.value)});
+lab();setCount(10);
+
+function wallCollide(b,dt){
+  const w=+rot.value;
+  for(let k=0;k<6;k++){
+    const th=angle+k*Math.PI/3+Math.PI/6; // outward normal angle
+    const nx=Math.cos(th),ny=Math.sin(th);
+    const rx=b.x-CX,ry=b.y-CY;
+    const dist=rx*nx+ry*ny; // signed distance along normal
+    const pen=dist+b.r-apo;
+    if(pen>0){
+      b.x-=nx*pen;b.y-=ny*pen;
+      // wall velocity at contact point (omega x r)
+      const wvx=-w*ry,wvy=w*rx;
+      let rvx=b.vx-wvx,rvy=b.vy-wvy;
+      const vn=rvx*nx+rvy*ny;
+      if(vn>0){
+        const tx=-ny,ty=nx;
+        let vt=rvx*tx+rvy*ty;
+        const e=vn<30?0:REST; // no jitter at low speed
+        const jn=(1+e)*vn;
+        // Coulomb friction on tangent
+        const dvt=Math.min(Math.abs(vt),WALLFRIC*jn)*Math.sign(vt);
+        vt-=dvt;
+        const nvn=-e*vn;
+        rvx=nvn*nx+vt*tx;rvy=nvn*ny+vt*ty;
+        b.vx=rvx+wvx;b.vy=rvy+wvy;
+      }
+    }
+  }
+}
+function step(dt){
+  const g=+grav.value,w=+rot.value;
+  angle+=w*dt;
+  for(const b of balls){
+    b.vy+=g*dt;
+    const f=Math.exp(-AIR*dt);b.vx*=f;b.vy*=f;
+    b.x+=b.vx*dt;b.y+=b.vy*dt;
+  }
+  for(let it=0;it<4;it++){
+    for(let i=0;i<balls.length;i++)for(let j=i+1;j<balls.length;j++){
+      const a=balls[i],b=balls[j];
+      let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy),min=a.r+b.r;
+      if(d<min){
+        if(d<1e-6){dx=1;dy=0;d=1}
+        const nx=dx/d,ny=dy/d,pen=min-d,im=1/a.m+1/b.m;
+        a.x-=nx*pen*(1/a.m)/im;a.y-=ny*pen*(1/a.m)/im;
+        b.x+=nx*pen*(1/b.m)/im;b.y+=ny*pen*(1/b.m)/im;
+        const vn=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
+        if(vn<0){
+          const e=-vn<30?0:0.9,j2=-(1+e)*vn/im;
+          a.vx-=j2*nx/a.m;a.vy-=j2*ny/a.m;b.vx+=j2*nx/b.m;b.vy+=j2*ny/b.m;
+          // tangential friction
+          const tx=-ny,ty=nx,vt=(b.vx-a.vx)*tx+(b.vy-a.vy)*ty;
+          const jt=Math.max(-0.05*Math.abs(j2),Math.min(0.05*Math.abs(j2),-vt/im));
+          a.vx-=jt*tx/a.m;a.vy-=jt*ty/a.m;b.vx+=jt*tx/b.m;b.vy+=jt*ty/b.m;
+        }
+      }
+    }
+    for(const b of balls)wallCollide(b,dt);
+  }
+  // safety: never escape
+  for(const b of balls){
+    const rx=b.x-CX,ry=b.y-CY;
+    if(Math.hypot(rx,ry)>R){const s=(apo-b.r)/Math.hypot(rx,ry);b.x=CX+rx*s;b.y=CY+ry*s;b.vx=b.vy=0}
+    if(!isFinite(b.x+b.y+b.vx+b.vy)){b.x=CX;b.y=CY;b.vx=b.vy=0}
+  }
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.beginPath();
+  for(let k=0;k<6;k++){const a=angle+k*Math.PI/3;const x=CX+R*Math.cos(a),y=CY+R*Math.sin(a);k?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+  ctx.closePath();ctx.lineWidth=4;ctx.strokeStyle='#8cf';ctx.stroke();
+  for(const b of balls){
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,7);ctx.fillStyle=b.color;ctx.fill();
+    ctx.fillStyle='#000';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(b.n,b.x,b.y);
+  }
+}
+let last=performance.now();
+function loop(t){
+  let frame=Math.min((t-last)/1000,0.05);last=t;
+  const sub=8;for(let i=0;i<sub;i++)step(frame/sub);
+  draw();requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script></body></html>

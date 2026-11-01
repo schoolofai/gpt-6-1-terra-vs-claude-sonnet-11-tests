@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hex Lab — Motion in a box</title>
+<style>
+  :root{color-scheme:dark;--bg:#101310;--panel:#191d19;--line:#30362e;--muted:#929a8d;--ink:#edf0e7;--accent:#d3f36b}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-width:320px} button,input{font:inherit} button{cursor:pointer}
+  .app{max-width:1600px;margin:auto;padding:0 52px 38px} .topbar{height:92px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:750;letter-spacing:-.045em;font-size:19px}.brand-mark{width:29px;height:29px;display:grid;place-items:center;color:var(--accent)} .brand-mark svg{width:29px;height:29px}
+  .top-right{display:flex;align-items:center;gap:25px;color:#a4ac9e;font-size:12px;font-weight:600;letter-spacing:.025em}.top-right .divider{height:16px;width:1px;background:#3a4038}.live{display:flex;align-items:center;gap:8px}.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px #c9f36b80}
+  .intro{display:flex;justify-content:space-between;align-items:end;padding:49px 0 27px;gap:20px}.eyebrow{color:var(--accent);font-size:10px;font-weight:750;letter-spacing:.18em;text-transform:uppercase;margin-bottom:13px}.intro h1{font-weight:550;letter-spacing:-.055em;font-size:clamp(34px,3.3vw,48px);line-height:1.05;margin:0}.intro p{color:var(--muted);font-size:14px;line-height:1.6;margin:12px 0 0}.intro-index{font-size:11px;letter-spacing:.12em;color:#747e70;text-transform:uppercase;padding-bottom:4px;white-space:nowrap}
+  .workspace{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:stretch}.stage{position:relative;min-height:615px;background:#171c17;border:1px solid #30392e;border-radius:4px;overflow:hidden;display:flex;flex-direction:column}
+  .stage:before{content:"";position:absolute;inset:0;background-image:linear-gradient(#b8d4a007 1px,transparent 1px),linear-gradient(90deg,#b8d4a007 1px,transparent 1px);background-size:40px 40px;pointer-events:none;mask-image:linear-gradient(to bottom,black,transparent 95%)}
+  .stage-head{position:absolute;z-index:1;top:25px;left:28px;right:28px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}.stage-label{display:flex;gap:10px;align-items:center;font-size:10px;font-weight:700;color:#aab5a5;letter-spacing:.13em;text-transform:uppercase}.stage-label span{width:6px;height:6px;background:var(--accent);border-radius:50%}.stage-corner{color:#6e7b6b;font-size:10px;letter-spacing:.1em}
+  .canvas-wrap{position:absolute;inset:30px 35px 45px;display:grid;place-items:center}canvas{display:block;width:100%;height:100%}.stage-bottom{position:absolute;bottom:24px;left:28px;right:28px;display:flex;align-items:center;justify-content:space-between;color:#82907e;font-size:10px;letter-spacing:.09em;text-transform:uppercase}.stage-bottom strong{color:#bdcbb7;font-weight:600}.cross{color:#687665;font-size:16px;font-weight:300}
+  .sidebar{background:var(--panel);border:1px solid var(--line);border-radius:4px;display:flex;flex-direction:column}.side-top{padding:27px 26px 23px;border-bottom:1px solid var(--line)}.side-kicker{font-size:10px;color:#8e9a89;letter-spacing:.14em;font-weight:700;text-transform:uppercase}.side-top h2{font-size:21px;letter-spacing:-.035em;font-weight:550;margin:9px 0 6px}.side-top p{color:var(--muted);font-size:12px;line-height:1.6;margin:0}
+  .controls{padding:28px 26px 12px;display:flex;flex-direction:column;gap:28px}.control-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.control-head label{font-size:12px;font-weight:650;color:#e4e9de}.value{font-variant-numeric:tabular-nums;font-size:13px;color:var(--accent);font-weight:650}.value small{font-size:10px;color:#91a083;font-weight:500;margin-left:2px}.range-wrap{margin-top:13px}input[type=range]{display:block;width:100%;height:16px;margin:0;appearance:none;background:transparent;cursor:pointer;--fill:50%}input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:linear-gradient(to right,var(--accent) var(--fill),#485045 var(--fill))}input[type=range]::-moz-range-track{height:3px;border-radius:2px;background:#485045}input[type=range]::-moz-range-progress{height:3px;background:var(--accent)}input[type=range]::-webkit-slider-thumb{appearance:none;width:13px;height:13px;background:var(--accent);border:3px solid #252d20;border-radius:50%;margin-top:-5px;box-shadow:0 0 0 1px var(--accent)}input[type=range]::-moz-range-thumb{width:8px;height:8px;background:var(--accent);border:3px solid #252d20;border-radius:50%;box-shadow:0 0 0 1px var(--accent)}input[type=range]:focus-visible{outline:1px solid var(--accent);outline-offset:5px}.range-ends{display:flex;justify-content:space-between;color:#717d6e;font-size:10px;margin-top:7px}.control-desc{font-size:11px;color:#818d7d;margin-top:9px;line-height:1.4}
+  .side-actions{padding:25px 26px 26px;margin-top:auto}.buttons{display:grid;grid-template-columns:1fr 44px;gap:8px}.primary,.reset{height:44px;border-radius:3px;font-weight:700;font-size:12px}.primary{background:var(--accent);color:#1c2513;border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;gap:9px}.primary:hover{background:#e1fb91}.reset{background:transparent;color:#d6dfd0;border:1px solid #495246;font-size:19px}.reset:hover{border-color:var(--accent);color:var(--accent)}.hint{margin:14px 0 0;text-align:center;font-size:10px;color:#7f8b7a}
+  .footer{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:24px 0 0;color:#778273;font-size:11px}.footer-left{display:flex;align-items:center;gap:17px}.footer-left strong{color:#b4bfb0;font-weight:600}.footer-line{width:25px;height:1px;background:#586455}.footer-right{letter-spacing:.07em;text-transform:uppercase;font-size:10px}
+  @media(max-width:850px){.app{padding:0 24px 30px}.workspace{grid-template-columns:1fr}.stage{min-height:560px}.sidebar{display:grid;grid-template-columns:1fr 2fr}.side-top{border-bottom:0;border-right:1px solid var(--line)}.controls{padding:25px;gap:20px}.side-actions{grid-column:1/-1;padding-top:5px}.intro-index{display:none}}
+  @media(max-width:560px){.app{padding:0 16px 24px}.topbar{height:70px}.top-right{gap:12px}.top-right .edition,.top-right .divider{display:none}.intro{padding:35px 0 23px}.intro p{font-size:13px}.stage{min-height:440px}.canvas-wrap{inset:40px 0 44px}.stage-head{top:20px;left:18px;right:18px}.stage-bottom{bottom:18px;left:18px;right:18px}.sidebar{display:flex}.side-top{border-right:0;border-bottom:1px solid var(--line)}.controls{padding:25px 26px}.side-actions{padding:8px 26px 26px}.footer-right{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 2.5 27.7 9.25v13.5L16 29.5 4.3 22.75V9.25L16 2.5Z" stroke="currentColor" stroke-width="1.7"/><path d="M10.5 19.2 16 9.6l5.5 9.6H10.5Z" fill="currentColor"/></svg></span>hex lab<span style="color:#8e9b83">.</span></div>
+    <div class="top-right"><span class="edition">AN INTERACTIVE EXPERIMENT</span><span class="divider"></span><span class="live"><span class="dot"></span> PHYSICS PLAYGROUND</span></div>
+  </header>
+  <section class="intro"><div><div class="eyebrow">Experiment 001 / Motion</div><h1>A little chaos, contained.</h1><p>Ten little worlds in motion. Change the rules and see what happens.</p></div><div class="intro-index">PLAYGROUND &nbsp; / &nbsp; 01</div></section>
+  <main class="workspace">
+    <section class="stage" aria-label="Animated physics simulation of balls bouncing inside a rotating hexagon">
+      <div class="stage-head"><div class="stage-label"><span></span> Live simulation</div><div class="stage-corner">FIG. 01 &nbsp; / &nbsp; HEXAGON</div></div>
+      <div class="canvas-wrap"><canvas id="canvas" aria-label="Balls bouncing inside a rotating hexagon"></canvas></div>
+      <div class="stage-bottom"><div><strong id="stageCount">10 BALLS</strong> &nbsp; / &nbsp; <span id="stageState">IN MOTION</span></div><div class="cross">+</div><div>BOUNDED SPACE &nbsp; · &nbsp; 2D</div></div>
+    </section>
+    <aside class="sidebar" aria-label="Simulation controls">
+      <div class="side-top"><div class="side-kicker">Make it your own</div><h2>Control panel</h2><p>A few small tweaks can change everything.</p></div>
+      <div class="controls">
+        <div class="control"><div class="control-head"><label for="rotation">Rotation speed</label><span class="value"><span id="rotationValue">28</span><small>°/s</small></span></div><div class="range-wrap"><input id="rotation" type="range" min="-100" max="100" value="28" step="1"><div class="range-ends"><span>Counterclockwise</span><span>Clockwise</span></div></div></div>
+        <div class="control"><div class="control-head"><label for="gravity">Gravity</label><span class="value"><span id="gravityValue">500</span><small>px/s²</small></span></div><div class="range-wrap"><input id="gravity" type="range" min="0" max="1200" value="500" step="10"><div class="range-ends"><span>Weightless</span><span>Heavy</span></div></div></div>
+        <div class="control"><div class="control-head"><label for="count">Ball count</label><span class="value"><span id="countValue">10</span><small>balls</small></span></div><div class="range-wrap"><input id="count" type="range" min="1" max="24" value="10" step="1"><div class="range-ends"><span>1</span><span>24</span></div></div><div class="control-desc">More balls, more possibilities.</div></div>
+      </div>
+      <div class="side-actions"><div class="buttons"><button id="toggle" class="primary" type="button"><span id="toggleIcon">Ⅱ</span><span id="toggleText">Pause simulation</span></button><button id="reset" class="reset" type="button" aria-label="Reset simulation" title="Reset simulation">↺</button></div><p class="hint">Take a moment. Watch things bounce.</p></div>
+    </aside>
+  </main>
+  <footer class="footer"><div class="footer-left"><strong>HEX LAB</strong><span class="footer-line"></span><span>A study in playful physics.</span></div><div class="footer-right">Made for curious minds &nbsp; ✳</div></footer>
+</div>
+<script>
+(() => {
+  'use strict';
+  const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
+  const rotation = document.getElementById('rotation'), gravity = document.getElementById('gravity'), count = document.getElementById('count');
+  const toggle = document.getElementById('toggle');
+  const R = 255, radius = 14, step = 1 / 180;
+  const palette = ['#d5f477','#f1b57e','#a8d6b0','#eec987','#a7cbdd','#e99e91','#c3b3e4','#e2dca7','#91c8b3','#efb4c0','#b5d788','#dfab7f'];
+  let balls = [], angle = 0, running = true, last = 0, accumulator = 0, width = 0, height = 0, dpr = 1;
+  function resize(){
+    const rect = canvas.getBoundingClientRect(); width = rect.width; height = rect.height; dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.max(1, Math.round(width * dpr)); canvas.height = Math.max(1, Math.round(height * dpr));
+    ctx.setTransform(dpr,0,0,dpr,0,0); draw();
+  }
+  function vertices(){return Array.from({length:6},(_,i)=>{const a = angle - Math.PI / 2 + i * Math.PI / 3; return {x:Math.cos(a)*R,y:Math.sin(a)*R};});}
+  function inside(x,y,margin,verts){
+    for(let i=0;i<6;i++){const a=verts[i], b=verts[(i+1)%6], dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy); if ((-(dy)*(x-a.x)+dx*(y-a.y))/len < margin) return false;}
+    return true;
+  }
+  function addBall(){
+    const verts=vertices(); let x=0,y=0,found=false;
+    for(let tries=0;tries<1500;tries++){
+      x=(Math.random()*2-1)*(R-radius-5); y=(Math.random()*2-1)*(R-radius-5);
+      if(inside(x,y,radius+3,verts) && balls.every(b=>Math.hypot(x-b.x,y-b.y)>radius+b.r+4)){found=true;break;}
+    }
+    if(!found){ // The low maximum density makes this unlikely; keep trying a deterministic grid.
+      outer: for(let yy=-200;yy<=200;yy+=radius*2+2) for(let xx=-200;xx<=200;xx+=radius*2+2){if(inside(xx,yy,radius+2,verts)&&balls.every(b=>Math.hypot(xx-b.x,yy-b.y)>radius+b.r+1)){x=xx;y=yy;found=true;break outer;}}
+    }
+    if(found) balls.push({x,y,vx:(Math.random()-.5)*100,vy:(Math.random()-.5)*100,r:radius,color:palette[balls.length%palette.length]});
+  }
+  function setCount(n){while(balls.length>n) balls.pop(); while(balls.length<n){const old=balls.length;addBall();if(balls.length===old)break;} document.getElementById('stageCount').textContent=balls.length+' '+(balls.length===1?'BALL':'BALLS');}
+  function reset(){angle=0;balls=[];setCount(+count.value);accumulator=0;draw();}
+  function physics(dt){
+    const omega=+rotation.value*Math.PI/180;
+    angle=(angle+omega*dt)%(Math.PI*2);
+    const verts=vertices();
+    for(const b of balls){b.vy+=+gravity.value*dt; const drag=Math.exp(-0.035*dt);b.vx*=drag;b.vy*=drag;b.x+=b.vx*dt;b.y+=b.vy*dt;}
+    // Repeated positional constraints handle dense contacts and corners without leakage.
+    for(let pass=0;pass<4;pass++){
+      for(let i=0;i<balls.length;i++) for(let j=i+1;j<balls.length;j++){
+        const a=balls[i], b=balls[j];let dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy),min=a.r+b.r;
+        if(dist<min){if(dist<1e-8){dx=1;dy=0;dist=1;}const nx=dx/dist,ny=dy/dist,overlap=min-dist;a.x-=nx*overlap/2;a.y-=ny*overlap/2;b.x+=nx*overlap/2;b.y+=ny*overlap/2;
+          const rvx=b.vx-a.vx,rvy=b.vy-a.vy,vn=rvx*nx+rvy*ny;
+          if(vn<0){const impulse=-(1+0.88)*vn/2;a.vx-=impulse*nx;a.vy-=impulse*ny;b.vx+=impulse*nx;b.vy+=impulse*ny;
+            const tx=-ny,ty=nx,vt=rvx*tx+rvy*ty,friction=Math.max(-impulse*0.06,Math.min(impulse*0.06,-vt/2));a.vx-=friction*tx;a.vy-=friction*ty;b.vx+=friction*tx;b.vy+=friction*ty;}
+        }
+      }
+      for(const b of balls) for(let i=0;i<6;i++){
+        const a=verts[i],c=verts[(i+1)%6],dx=c.x-a.x,dy=c.y-a.y,len=Math.hypot(dx,dy),nx=-dy/len,ny=dx/len;
+        const distance=(b.x-a.x)*nx+(b.y-a.y)*ny;
+        if(distance<b.r){b.x+=nx*(b.r-distance);b.y+=ny*(b.r-distance);
+          // The wall's contact point has tangential velocity omega × position.
+          const contactX=b.x-nx*b.r,contactY=b.y-ny*b.r,wx=-omega*contactY,wy=omega*contactX;
+          const rvx=b.vx-wx,rvy=b.vy-wy,vn=rvx*nx+rvy*ny;
+          if(vn<0){const impulse=-(1+0.82)*vn;b.vx+=impulse*nx;b.vy+=impulse*ny;const tx=-ny,ty=nx,vt=rvx*tx+rvy*ty,friction=Math.max(-impulse*0.18,Math.min(impulse*0.18,-vt));b.vx+=friction*tx;b.vy+=friction*ty;}
+        }
+      }
+    }
+  }
+  function draw(){
+    if(!width||!height)return;ctx.clearRect(0,0,width,height);
+    const scale=Math.min(width,height)/620;ctx.save();ctx.translate(width/2,height/2);ctx.scale(scale,scale);
+    const verts=vertices();
+    // A quiet halo gives the simulation its own visual space.
+    const halo=ctx.createRadialGradient(0,0,80,0,0,340);halo.addColorStop(0,'rgba(121,157,87,0.055)');halo.addColorStop(1,'rgba(121,157,87,0)');ctx.fillStyle=halo;ctx.beginPath();ctx.arc(0,0,340,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();verts.forEach((v,i)=>i?ctx.lineTo(v.x,v.y):ctx.moveTo(v.x,v.y));ctx.closePath();ctx.fillStyle='rgba(183,213,151,0.025)';ctx.fill();ctx.strokeStyle='rgba(202,240,133,0.12)';ctx.lineWidth=12;ctx.lineJoin='round';ctx.stroke();ctx.strokeStyle='#c8e99b';ctx.lineWidth=2.5;ctx.stroke();
+    // Small vertex markers make the rotation easy to follow.
+    for(const v of verts){ctx.beginPath();ctx.arc(v.x,v.y,3.4,0,Math.PI*2);ctx.fillStyle='#dcf5b1';ctx.fill();}
+    for(const b of balls){ctx.save();ctx.shadowColor=b.color;ctx.shadowBlur=13;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle=b.color;ctx.fill();ctx.shadowBlur=0;
+      const light=ctx.createRadialGradient(b.x-b.r*.35,b.y-b.r*.42,1,b.x,b.y,b.r*1.25);light.addColorStop(0,'rgba(255,255,255,.55)');light.addColorStop(.5,'rgba(255,255,255,.04)');light.addColorStop(1,'rgba(22,38,20,.28)');ctx.fillStyle=light;ctx.fill();ctx.restore();}
+    ctx.restore();
+  }
+  function updateRange(el){el.style.setProperty('--fill',((+el.value-+el.min)/(+el.max-+el.min)*100)+'%');document.getElementById(el.id+'Value').textContent=el.value;}
+  for(const el of [rotation,gravity,count]){updateRange(el);el.addEventListener('input',()=>{updateRange(el);if(el===count)setCount(+count.value);draw();});}
+  toggle.addEventListener('click',()=>{running=!running;document.getElementById('toggleIcon').textContent=running?'Ⅱ':'▶';document.getElementById('toggleText').textContent=running?'Pause simulation':'Resume simulation';document.getElementById('stageState').textContent=running?'IN MOTION':'PAUSED';last=0;accumulator=0;});
+  document.getElementById('reset').addEventListener('click',reset);
+  function frame(t){if(!last)last=t;const elapsed=Math.min((t-last)/1000,0.05);last=t;if(running){accumulator+=elapsed;while(accumulator>=step){physics(step);accumulator-=step;}}draw();requestAnimationFrame(frame);}
+  window.addEventListener('resize',resize);reset();resize();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

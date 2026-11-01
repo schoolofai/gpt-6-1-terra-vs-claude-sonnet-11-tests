@@ -1,0 +1,9 @@
+{
+  "name": "ledgerly",
+  "version": "0.4.2",
+  "private": true,
+  "description": "Small order-to-cash library: orders, stock, invoices, payments and reports.",
+  "main": "src/index.js",
+  "scripts": { "test": "node --test test/" },
+  "license": "MIT"
+}

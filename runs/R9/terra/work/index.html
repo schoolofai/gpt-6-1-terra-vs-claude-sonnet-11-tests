@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Meadow Mill — a working study</title>
+<style>
+  *{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;overflow:hidden} body{font-family:Arial,Helvetica,sans-serif;background:#dce7e3;color:#24372e} canvas{display:block;width:100%;height:100%}
+  .overlay{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:34px 42px 30px}
+  .top,.bottom{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}.eyebrow{font-size:10px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;color:#536a5c}.title{font:normal 32px/1.05 Georgia,serif;letter-spacing:-.035em;margin:9px 0 6px}.subtitle{font-size:12px;color:#65766a;letter-spacing:.035em}.mark{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#4a6454}.dot{width:7px;height:7px;border-radius:50%;background:#6b9271;box-shadow:0 0 0 4px #6b927124}.bottom{align-items:flex-end}.note{font:italic 15px Georgia,serif;color:#53695a}.hint{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#53695a;text-align:right;line-height:1.8}.hint b{font-weight:700;color:#304c39}.line{display:inline-block;width:27px;height:1px;background:#6b8070;vertical-align:middle;margin-right:9px}
+  @media(max-width:600px){.overlay{padding:22px 20px}.title{font-size:26px}.subtitle{font-size:11px}.mark{font-size:9px}.note{font-size:13px;max-width:170px}.hint{font-size:9px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div class="overlay"><div class="top"><div><div class="eyebrow">A study in motion &nbsp; / &nbsp; No. 01</div><h1 class="title">The Meadow Mill</h1><div class="subtitle">A traditional tower windmill</div></div><div class="mark"><span class="dot"></span> Mechanism in motion</div></div><div class="bottom"><div class="note"><span class="line"></span>Where wind becomes work.</div><div class="hint"><b>Explore the mill</b><br>Drag to orbit &nbsp;·&nbsp; Scroll to zoom</div></div></div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xdce8e6);
+scene.fog = new THREE.Fog(0xdce8e6, 42, 100);
+const camera = new THREE.PerspectiveCamera(36, innerWidth / innerHeight, .1, 180);
+camera.position.set(19, 13, 28);
+if (innerWidth / innerHeight < 0.8) camera.position.multiplyScalar(1.45);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+document.body.prepend(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 6.5, 0);
+controls.enableDamping = true;
+controls.dampingFactor = .045;
+controls.autoRotate = true;
+controls.autoRotateSpeed = .32;
+controls.minDistance = 18; controls.maxDistance = 75;
+controls.maxPolarAngle = Math.PI / 2.05;
+controls.update();
+scene.add(new THREE.HemisphereLight(0xeaf5fa, 0x677b4f, 2.0));
+const sun = new THREE.DirectionalLight(0xfff3d7, 3.1);
+sun.position.set(-12, 23, 17); sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-20; sun.shadow.camera.right=20; sun.shadow.camera.top=24; sun.shadow.camera.bottom=-20;
+sun.shadow.camera.near=1; sun.shadow.camera.far=65; sun.shadow.bias=-.0002;
+scene.add(sun);
+
+const mat = (color, roughness=1, extra={}) => new THREE.MeshStandardMaterial({color, roughness, ...extra});
+const green=mat(0x193f30), greenAlt=mat(0x214a38), greenDark=mat(0x102f24), seam=mat(0x123526),
+ wood=mat(0x766346), woodLight=mat(0x9a8664), woodDark=mat(0x4b4735),
+ cream=mat(0xe7e6d5), capTrim=mat(0xb7bbae), red=mat(0x922e28), iron=mat(0x333b32,.7),
+ brass=mat(0xb4945a,.65), dark=mat(0x17231b), stone=mat(0x77796b);
+function mesh(geom, material, parent=scene){const m=new THREE.Mesh(geom,material);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+function box(w,h,d, material, x,y,z, parent=scene){const m=mesh(new THREE.BoxGeometry(w,h,d),material,parent);m.position.set(x,y,z);return m;}
+function beam(a,b,width,material,depth=width,parent=scene){const av=new THREE.Vector3(...a),bv=new THREE.Vector3(...b),delta=bv.clone().sub(av);const m=box(width,delta.length(),depth,material,0,0,0,parent);m.position.copy(av.add(bv).multiplyScalar(.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize());return m;}
+function cyl(radiusTop,radiusBottom,height,material,x,y,z,segments=24,parent=scene){const m=mesh(new THREE.CylinderGeometry(radiusTop,radiusBottom,height,segments),material,parent);m.position.set(x,y,z);return m;}
+
+// A softly mottled meadow, generated in the file rather than loaded as an image.
+const gc=document.createElement('canvas'); gc.width=gc.height=256; const ctx=gc.getContext('2d');
+ctx.fillStyle='#788e5a';ctx.fillRect(0,0,256,256);
+let seed=743; function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
+for(let i=0;i<18000;i++){const v=rand();ctx.fillStyle=v<.33?'rgba(40,78,36,.12)':v<.66?'rgba(180,177,108,.11)':'rgba(95,125,62,.14)';const x=rand()*256,y=rand()*256;ctx.fillRect(x,y,1+rand()*3,1+rand()*3);}
+const grassTex=new THREE.CanvasTexture(gc);grassTex.wrapS=grassTex.wrapT=THREE.RepeatWrapping;grassTex.repeat.set(35,35);grassTex.colorSpace=THREE.SRGBColorSpace;
+const ground=mesh(new THREE.PlaneGeometry(180,180),mat(0xffffff,1,{map:grassTex}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;ground.castShadow=false;
+// Foundation and discreet stone path.
+cyl(3.37,3.45,.25,stone,0,.14,0,8).rotation.y=Math.PI/8;
+for(let i=0;i<7;i++){const s=box(1.22+rand()*.3,.065,.48+rand()*.14,stone,(rand()-.5)*.22,.035,3.15+i*.64);s.rotation.y=(rand()-.5)*.12;}
+
+// Eight tapered timber faces, with an actual opening in the front face.
+const bottomY=.26, topY=9.25, r0=3.3, r1=1.86, half=Math.PI/8;
+const radius=y=>r0+(r1-r0)*(y-bottomY)/(topY-bottomY);
+const faceZ=y=>radius(y)*Math.cos(half), faceX=y=>radius(y)*Math.sin(half);
+function quad(points, material){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(points.flat(),3));g.setIndex([0,1,2,0,2,3]);g.computeVertexNormals();return mesh(g,material);}
+for(let i=0;i<8;i++){
+ const a=-half+i*Math.PI/4,b=a+Math.PI/4;
+ if(i===0){
+  const y1=5.45,y2=7.12, x=.66;
+  const P=(xx,y)=>[xx,y,faceZ(y)];
+  quad([P(-faceX(bottomY),bottomY),P(faceX(bottomY),bottomY),P(faceX(y1),y1),P(-faceX(y1),y1)],green);
+  quad([P(-faceX(y2),y2),P(faceX(y2),y2),P(faceX(topY),topY),P(-faceX(topY),topY)],green);
+  quad([P(-faceX(y1),y1),P(-x,y1),P(-x,y2),P(-faceX(y2),y2)],green);
+  quad([P(x,y1),P(faceX(y1),y1),P(faceX(y2),y2),P(x,y2)],green);
+ } else {
+  quad([[Math.sin(a)*r0,bottomY,Math.cos(a)*r0],[Math.sin(b)*r0,bottomY,Math.cos(b)*r0],[Math.sin(b)*r1,topY,Math.cos(b)*r1],[Math.sin(a)*r1,topY,Math.cos(a)*r1]],i%3===0?greenAlt:green);
+ }
+ // Narrow seams between individual vertical planks.
+ for(let j=0;j<=10;j++){
+  const t=j/10, xx0=(-1+2*t)*faceX(bottomY), xx1=(-1+2*t)*faceX(topY);
+  const ang=i*Math.PI/4, rot=(x,z)=>[x*Math.cos(ang)+z*Math.sin(ang),-x*Math.sin(ang)+z*Math.cos(ang)];
+  const point=y=>{const x=xx0+(xx1-xx0)*(y-bottomY)/(topY-bottomY);const p=rot(x,faceZ(y)+.012);return [p[0],y,p[1]];};
+  // skip plank seams over the hatch
+  if(i===0 && Math.abs(xx0+(xx1-xx0)*(6.2-bottomY)/(topY-bottomY))<.75){beam(point(bottomY),point(5.45),.017,seam);beam(point(7.12),point(topY),.017,seam);}
+  else beam(point(bottomY),point(topY),.017,seam);
+ }
+}
+// Red, framed plank door on the front.
+const doorZ=faceZ(1.35)+.07;
+const door=box(.94,2.05,.10,red,0,1.36,doorZ);door.rotation.x=-.16;
+for(let i=-2;i<=2;i++)beam([i*.16,.37,doorZ+.13],[i*.16,2.35,doorZ-.18],.012,woodDark);
+beam([- .55,.28,faceZ(.28)+.09],[-.55,2.43,faceZ(2.43)+.09],.095,greenDark);
+beam([ .55,.28,faceZ(.28)+.09],[ .55,2.43,faceZ(2.43)+.09],.095,greenDark);
+beam([-.57,2.43,faceZ(2.43)+.09],[.57,2.43,faceZ(2.43)+.09],.1,greenDark);
+const knob=mesh(new THREE.SphereGeometry(.045,12,8),brass);knob.position.set(.32,1.3,doorZ+.1);
+box(1.3,.14,.52,stone,0,.14,3.33);
+
+// Open inspection hatch: a recessed dark chamber, and a turning timber gear.
+const hatchY=6.28, hatchZ=faceZ(hatchY);
+box(1.32,1.67,.08,dark,0,hatchY,hatchZ-.20);
+for(const x of [-.71,.71]) beam([x,5.42,faceZ(5.42)+.055],[x,7.15,faceZ(7.15)+.055],.10,woodDark);
+for(const y of [5.42,7.15]) beam([-.75,y,faceZ(y)+.055],[.75,y,faceZ(y)+.055],.1,woodDark);
+// A little hinged shutter sits open to the right of the aperture.
+const shutter=box(.58,1.62,.09,greenAlt,1.02,6.29,hatchZ+.25);shutter.rotation.y=-.65;shutter.rotation.x=-.16;
+for(const y of [5.67,6.88]){const hinge=box(.13,.08,.07,iron,.72,y,faceZ(y)+.12);}
+const gear=new THREE.Group(); gear.position.set(0,hatchY,hatchZ-.11);scene.add(gear);
+const ring=mesh(new THREE.TorusGeometry(.48,.09,10,40),woodLight,gear);
+for(let i=0;i<12;i++){let a=i*Math.PI*2/12;const tooth=box(.14,.16,.12,woodLight,Math.sin(a)*.52,Math.cos(a)*.52,0,gear);tooth.rotation.z=-a;}
+for(let i=0;i<6;i++){let a=i*Math.PI/3;beam([0,0,0],[Math.sin(a)*.47,Math.cos(a)*.47,0],.075,woodLight,.08,gear);}
+const gearHub=cyl(.13,.13,.3,brass,0,0,0,16,gear);gearHub.rotation.x=Math.PI/2;
+
+// Gallery: an octagonal timber deck, rails and the diagonal brackets below.
+const deckY=3.43, outer=4.22, inner=2.45;
+const deck=mesh(new THREE.RingGeometry(inner,outer,8,1,Math.PI/8),woodDark);deck.rotation.x=-Math.PI/2;deck.position.y=deckY;
+const pt=(r,a,y)=>[Math.sin(a)*r,y,Math.cos(a)*r];
+for(let i=0;i<8;i++){
+ const a=-half+i*Math.PI/4,b=a+Math.PI/4;
+ for(const r of [3.02,3.32,3.62,3.92,4.17])beam(pt(r,a,deckY+.035),pt(r,b,deckY+.035),.045,woodLight,.045);
+ beam(pt(outer,a,deckY),pt(outer,b,deckY),.16,woodDark,.18);
+ beam(pt(2.7,a,1.75),pt(4.12,a,deckY-.06),.14,woodDark);
+ beam(pt(2.7,(a+b)/2,1.92),pt(4.05,(a+b)/2,deckY-.06),.11,woodDark);
+ for(const t of [0,.5]){const x=Math.sin(a)*outer*(1-t)+Math.sin(b)*outer*t,z=Math.cos(a)*outer*(1-t)+Math.cos(b)*outer*t;beam([x,deckY,z],[x,deckY+1.04,z],.085,woodDark);}
+ for(const y of [deckY+.18,deckY+.53,deckY+1.02])beam(pt(outer,a,y),pt(outer,b,y),.075,woodLight,.075);
+}
+
+// Cap: a white round dome on the octagonal body with subtle raised ribs.
+const capBase=cyl(2.02,2.02,.35,cream,0,9.36,0,32);
+const dome=mesh(new THREE.SphereGeometry(2.02,32,20,0,Math.PI*2,0,Math.PI/2),cream);dome.position.y=9.53;dome.scale.y=.76;
+const rim=cyl(2.08,2.08,.1,capTrim,0,9.18,0,32);
+for(let i=0;i<16;i++){
+ let a=i*Math.PI/8;const points=[];for(let j=0;j<=16;j++){const t=j*Math.PI/2/16;points.push(new THREE.Vector3(Math.sin(a)*2.025*Math.sin(t),9.53+1.54*Math.cos(t),Math.cos(a)*2.025*Math.sin(t)));}
+ const rib=mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),20,.012,4,false),capTrim);rib.castShadow=false;
+}
+// Long tail pole, extending down from the back of the rotating cap.
+beam([0,9.5,-1.85],[0,.58,-8.0],.23,cream,.23);
+beam([-.85,9.32,-1.75],[0,5.2,-4.65],.10,capTrim);
+beam([.85,9.32,-1.75],[0,5.2,-4.65],.10,capTrim);
+beam([-.65,.55,-7.85],[.65,.55,-7.85],.17,woodDark);
+const tailWheel=mesh(new THREE.TorusGeometry(.35,.07,8,24),woodDark);tailWheel.position.set(.55,.37,-7.9);tailWheel.rotation.y=Math.PI/2;
+
+// Axle and four common sails. The lattice is real timber, not a texture.
+const axleY=10.08;
+const axle=cyl(.20,.20,3.55,woodDark,0,axleY,1.25,16);axle.rotation.x=Math.PI/2;
+const sails=new THREE.Group();sails.position.set(0,axleY,2.9);sails.rotation.z=Math.PI/4;scene.add(sails);
+const hub=cyl(.33,.38,.48,greenDark,0,0,0,16,sails);hub.rotation.x=Math.PI/2;
+const hubCap=cyl(.17,.17,.55,iron,0,0,.06,16,sails);hubCap.rotation.x=Math.PI/2;
+const sailCloth=mat(0xe8e5cf,1,{side:THREE.DoubleSide,transparent:true,opacity:.78});
+for(let i=0;i<4;i++){
+ const arm=new THREE.Group();arm.rotation.z=i*Math.PI/2;sails.add(arm);
+ // longitudinal stock and the thin perimeter of the lattice
+ beam([-.35,.18,0],[-.35,6.5,0],.16,woodDark,.18,arm);
+ for(const x of [-.48,-.12,.24,.60,.96])beam([x,1.05,.02],[x,6.48,.02],x===-.48||x===.96?.055:.032,woodLight,.04,arm);
+ for(let j=0;j<=17;j++){const y=1.05+j*.32;beam([-.48,y,.035],[.96,y,.035],.035,woodLight,.04,arm);}
+ // A narrow, furled panel of canvas covers part of each sail.
+ const cloth=mesh(new THREE.PlaneGeometry(.66,2.85),sailCloth,arm);cloth.position.set(.28,3.16,-.035);
+}
+
+// Sparse grass blades in the foreground; instancing keeps the scene light.
+const bladeGeo=new THREE.ConeGeometry(.045,.34,3);bladeGeo.translate(0,.17,0);
+const blades=new THREE.InstancedMesh(bladeGeo,mat(0x718f53),1600);blades.receiveShadow=true;
+const dummy=new THREE.Object3D();for(let i=0;i<1600;i++){let x=(rand()-.5)*65,z=(rand()-.5)*65;if(Math.hypot(x,z)<5){x+=x<0?-5:5;}dummy.position.set(x,0,z);dummy.rotation.set((rand()-.5)*.25,rand()*Math.PI,(rand()-.5)*.25);let s=.6+rand()*.8;dummy.scale.set(s,s,s);dummy.updateMatrix();blades.setMatrixAt(i,dummy.matrix);}scene.add(blades);
+
+const clock=new THREE.Clock();
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);sails.rotation.z-=dt*.13;gear.rotation.z-=dt*.13;controls.update();renderer.render(scene,camera);}
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));});
+</script>
+</body>
+</html>

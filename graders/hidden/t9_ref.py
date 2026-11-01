@@ -1,0 +1,6 @@
+import sqlite3,sys
+db=sys.argv[1]; c=sqlite3.connect(db)
+q1=c.execute("""with g as (select o.id,coalesce(cu.country,'Unknown') country,(select sum(qty*unit_price_pence) from order_items i where i.order_id=o.id) gross,(select coalesce(sum(amount_pence),0) from refunds r where r.order_id=o.id) ref from orders o join customers cu on cu.id=o.customer_id where o.status='paid') select country, printf('%.2f',(sum(gross)-sum(ref))/100.0) from g group by country order by sum(gross)-sum(ref) desc""").fetchall()
+q2=c.execute("""with f as (select customer_id,min(order_date) d from orders where status='paid' group by customer_id), m as (select distinct substr(order_date,1,7) mo from orders where status='paid' and order_date like '2026%') select mo,(select count(*) from f where substr(d,1,7)=mo) from m order by mo""").fetchall()
+q3=c.execute("""select cu.name, printf('%.2f',sum(i.qty*i.unit_price_pence)/100.0) from orders o join customers cu on cu.id=o.customer_id join order_items i on i.order_id=o.id where o.status='paid' group by cu.id order by sum(i.qty*i.unit_price_pence) desc, cu.name asc limit 3""").fetchall()
+for n,q in (('q1',q1),('q2',q2),('q3',q3)): open(f'{sys.argv[2]}/{n}.expected','w').write('\n'.join('|'.join(str(x) for x in r) for r in q)+'\n')

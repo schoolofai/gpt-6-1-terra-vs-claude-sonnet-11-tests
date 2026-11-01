@@ -1,0 +1,12 @@
+{
+ "model": "openai/gpt-6.1-terra",
+ "label": "terra",
+ "task": "R1",
+ "status": "done",
+ "turns": 5,
+ "seconds": 76.5,
+ "cost_usd": 0.04105,
+ "prompt_tokens": 13943,
+ "completion_tokens": 6308,
+ "total_spent_so_far": 0.9405
+}

@@ -1,0 +1,12 @@
+{
+ "model": "anthropic/claude-sonnet-5.5",
+ "label": "sonnet",
+ "task": "T10",
+ "status": "done",
+ "turns": 3,
+ "seconds": 12.0,
+ "cost_usd": 0.02663,
+ "prompt_tokens": 4479,
+ "completion_tokens": 1767,
+ "total_spent_so_far": 0.1218
+}

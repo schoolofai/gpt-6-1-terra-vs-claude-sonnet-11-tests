@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Dungeon Crawler</title>
+<style>body{margin:0;background:#111;color:#eee;font-family:monospace;text-align:center}canvas{background:#000;margin-top:10px}</style></head>
+<body><canvas id="c" width="640" height="480"></canvas>
+<div>Move: Arrows/WASD &nbsp; Attack: Space &nbsp; Restart: R</div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const T=32,W=20,H=15;
+const map=[];
+for(let y=0;y<H;y++){map[y]=[];for(let x=0;x<W;x++)map[y][x]=(x==0||y==0||x==W-1||y==H-1)?1:0;}
+[[6,4],[6,5],[6,6],[13,8],[13,9],[13,10],[10,11],[9,11]].forEach(([x,y])=>map[y][x]=1);
+let player,health,score,gameOver,enemies,coins,atkT,cool,hurtT;
+const keys={};
+function free(x,y,r){for(const[px,py]of[[x-r,y-r],[x+r,y-r],[x-r,y+r],[x+r,y+r]]){const tx=Math.floor(px/T),ty=Math.floor(py/T);if(tx<0||ty<0||tx>=W||ty>=H||map[ty][tx])return false}return true}
+function reset(){player={x:3*T,y:3*T,fx:1,fy:0};health=100;score=0;gameOver=false;atkT=0;cool=0;hurtT=0;
+enemies=[[16,3],[16,12],[3,12],[10,7]].map(([x,y],i)=>({x:x*T+16,y:y*T+16,hp:3,dir:i,t:0,flash:0}));
+coins=[[8,2],[17,6],[2,8],[11,13],[15,10],[10,3]].map(([x,y])=>({x:x*T+16,y:y*T+16}));}
+function move(o,dx,dy,r){if(free(o.x+dx,o.y,r))o.x+=dx;if(free(o.x,o.y+dy,r))o.y+=dy}
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();keys[k]=true;
+if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
+if(k=='r'&&gameOver)reset();
+if(k==' '&&!gameOver&&cool<=0){atkT=10;cool=20;
+for(const en of enemies){if(Math.hypot(en.x-player.x,en.y-player.y)<48){en.hp--;en.flash=6;
+const d=Math.hypot(en.x-player.x,en.y-player.y)||1;move(en,(en.x-player.x)/d*14,(en.y-player.y)/d*14,10);
+if(en.hp<=0)score+=50}}
+enemies=enemies.filter(e=>e.hp>0);}});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+function update(){
+if(gameOver)return;
+let dx=0,dy=0;
+if(keys.arrowleft||keys.a)dx--;if(keys.arrowright||keys.d)dx++;
+if(keys.arrowup||keys.w)dy--;if(keys.arrowdown||keys.s)dy++;
+if(dx||dy){const l=Math.hypot(dx,dy);player.fx=dx/l;player.fy=dy/l;move(player,dx/l*3,dy/l*3,10)}
+if(cool>0)cool--;if(atkT>0)atkT--;if(hurtT>0)hurtT--;
+for(const en of enemies){
+if(en.flash>0)en.flash--;
+const d=Math.hypot(player.x-en.x,player.y-en.y);
+if(d<200){move(en,(player.x-en.x)/d*1.2,(player.y-en.y)/d*1.2,10)}
+else{en.t--;if(en.t<=0){en.dir=Math.floor(Math.random()*4);en.t=60}
+const v=[[1,0],[-1,0],[0,1],[0,-1]][en.dir];const ox=en.x,oy=en.y;move(en,v[0],v[1],10);if(ox==en.x&&oy==en.y)en.t=0}
+if(d<22&&hurtT<=0){health=Math.max(0,health-10);hurtT=30;if(health<=0)gameOver=true}}
+coins=coins.filter(c=>{if(Math.hypot(c.x-player.x,c.y-player.y)<18){score+=10;return false}return true});
+}
+function draw(){
+ctx.clearRect(0,0,640,480);
+for(let y=0;y<H;y++)for(let x=0;x<W;x++){ctx.fillStyle=map[y][x]?'#556':'#222';ctx.fillRect(x*T,y*T,T,T);if(!map[y][x]){ctx.strokeStyle='#2a2a2a';ctx.strokeRect(x*T,y*T,T,T)}}
+ctx.fillStyle='gold';for(const c of coins){ctx.beginPath();ctx.arc(c.x,c.y,6,0,7);ctx.fill()}
+for(const en of enemies){ctx.fillStyle=en.flash?'#fff':'#d33';ctx.fillRect(en.x-10,en.y-10,20,20)}
+ctx.fillStyle=hurtT%6>2?'#fff':'#3af';ctx.fillRect(player.x-10,player.y-10,20,20);
+if(atkT>0){ctx.strokeStyle='#ff0';ctx.beginPath();ctx.arc(player.x,player.y,48,0,7);ctx.stroke()}
+ctx.fillStyle='#fff';ctx.font='16px monospace';ctx.textAlign='left';
+ctx.fillText('Health: '+health,40,20);ctx.fillText('Score: '+score,200,20);
+ctx.fillStyle='#600';ctx.fillRect(330,8,100,12);ctx.fillStyle='#e33';ctx.fillRect(330,8,health,12);
+if(gameOver){ctx.fillStyle='rgba(0,0,0,.75)';ctx.fillRect(0,0,640,480);ctx.fillStyle='#f55';ctx.font='48px monospace';ctx.textAlign='center';
+ctx.fillText('Game Over',320,220);ctx.fillStyle='#fff';ctx.font='24px monospace';ctx.fillText('Final Score: '+score,320,265);ctx.fillText('Press R to restart',320,305)}
+}
+function loop(){update();draw();requestAnimationFrame(loop)}
+window.game={getState:()=>({player:{x:player.x,y:player.y},health,score,gameOver,enemies:enemies.length})};
+reset();loop();
+</script></body></html>
